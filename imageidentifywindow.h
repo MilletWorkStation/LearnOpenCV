@@ -66,6 +66,12 @@ private slots:
     void OnResizeYSliderChanged(int value);
     void OnResizeParamChanged();
 
+    // Hough
+    void OnHoughTypeChanged();
+    void OnHoughRhoChanged(int value);
+    void OnHoughThetaChanged(int value);
+    void OnHoughThresholdChanged(int value);
+    void OnHoughParamChanged();
 
 
 
@@ -75,6 +81,7 @@ private:
     void AddCannyStackWidget(QStackedWidget * p);
     void AddSobelStackWidget(QStackedWidget * p);
     void AddResizeStackWidget(QStackedWidget * p);
+    void AddHoughStackWidget(QStackedWidget * p);
 
 
     QDialog * m_pThresholdWidget = nullptr;
@@ -83,6 +90,8 @@ private:
     QDialog * m_pResizeWidget = nullptr;
     QDialog * m_pPyrUpWidget = nullptr;
     QDialog * m_pPyrDownWidget = nullptr;
+    QDialog * m_pHoughWidget = nullptr;
+
 
 private:
     Ui::ImageIdentifyWindow *ui;
@@ -119,7 +128,15 @@ private:
     QLabel * m_pSliderXLabel = nullptr;
     QLabel * m_pSliderYLabel = nullptr;
 
-    //
+    // Hough
+    int m_nHoughType = 0;                   // 0:HoughLines[SHT]标准变换   1: HoughLines[MSHT]多尺度变换  2：HoughLinesP[PPHT] 累计概率
+    double m_dHoughRho = 1.0;               // 以像素为单位的距离精度。另一种形容方式是直线搜索时的进步尺寸的单位半径。
+    double m_dHoughTheta = 3.1415926;             // 以弧度为单位的角度精度。另一种形容方式是直线搜索时的进步尺寸的单位角度。
+    double m_dHoughThreshold = 10;
+    QLabel * m_pHoughRhoLabel = nullptr;
+    QLabel * m_pHoughThetaLabel = nullptr;
+    QLabel * m_pHoughThresholdLabel = nullptr;
+    QLabel * m_pHoughLabelAfter = nullptr;
 
 };
 

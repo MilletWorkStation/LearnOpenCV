@@ -1,4 +1,4 @@
-#include "common.h"
+﻿#include "common.h"
 
 //参数1-显示图像的Label，参数2-要显示的Mat
 void LabelDisplayMat(QLabel *label, cv::Mat &mat)
@@ -17,9 +17,9 @@ void LabelDisplayMat(QLabel *label, cv::Mat &mat)
     label->setPixmap(QPixmap::fromImage(Img));
 }
 
-cv::Mat LoadImage()
+cv::Mat LoadImage(QString str)
 {
-    cv::Mat mat = cv::imread("F:/lena.jpg");
+    cv::Mat mat = cv::imread(str.toLocal8Bit().data());
 
     if( mat.data == NULL )
     {

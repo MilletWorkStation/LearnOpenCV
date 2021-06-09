@@ -3,6 +3,8 @@
 #include "ui_imageidentifywindow.h"
 #include "common.h"
 
+#include <opencv2/opencv.hpp>
+
 
 
 
@@ -28,6 +30,7 @@ ImageIdentifyWindow::ImageIdentifyWindow(QWidget *parent) :
     pListWidget->addItem(QString::fromLocal8Bit("Canny"));
     pListWidget->addItem(QString::fromLocal8Bit("Sobel"));
     pListWidget->addItem(QString::fromLocal8Bit("Resize"));
+    pListWidget->addItem(QString::fromLocal8Bit("Hough"));
 
     // 右侧
     QSplitter * pSplitterRight = new QSplitter(pSplitterMain);
@@ -51,6 +54,8 @@ ImageIdentifyWindow::ImageIdentifyWindow(QWidget *parent) :
             AddSobelStackWidget(pStackedWidget);
             // Resize
             AddResizeStackWidget(pStackedWidget);
+            // Hough
+            AddHoughStackWidget(pStackedWidget);
 
 
 
@@ -373,6 +378,90 @@ void ImageIdentifyWindow::AddResizeStackWidget(QStackedWidget * pStackedWidget)
     pStackedWidget->addWidget(m_pResizeWidget);
 }
 
+void ImageIdentifyWindow::AddHoughStackWidget(QStackedWidget * pStackedWidget)
+{
+    if(m_pHoughWidget != nullptr)
+        return;
+
+    m_pHoughWidget = new QDialog(this);
+    m_pHoughWidget->setWindowTitle("Hough");
+    {
+
+        QHBoxLayout * pHoughTypeLayout = new QHBoxLayout();
+        QRadioButton * pHoughSHTRadioButton = new QRadioButton("SHT", m_pHoughWidget);
+        QRadioButton * pHoughMSHTRadioButton = new QRadioButton("MSHT", m_pHoughWidget);
+        QRadioButton * pHoughPPHTRadioButton = new QRadioButton("PPHT", m_pHoughWidget);
+
+        pHoughSHTRadioButton->setChecked(true);
+
+        pHoughTypeLayout->addWidget(pHoughSHTRadioButton);
+        pHoughTypeLayout->addWidget(pHoughMSHTRadioButton);
+        pHoughTypeLayout->addWidget(pHoughPPHTRadioButton);
+
+        connect(pHoughSHTRadioButton, &QRadioButton::clicked, this, &ImageIdentifyWindow::OnHoughTypeChanged);
+        connect(pHoughMSHTRadioButton, &QRadioButton::clicked, this, &ImageIdentifyWindow::OnHoughTypeChanged);
+        connect(pHoughPPHTRadioButton, &QRadioButton::clicked, this, &ImageIdentifyWindow::OnHoughTypeChanged);
+
+        QVBoxLayout * pSliderLayout = new QVBoxLayout();
+
+        QHBoxLayout * pSliderRhoLayout = new QHBoxLayout();
+        QSlider * pRhoSlider = new QSlider(Qt::Horizontal , m_pHoughWidget);
+        pRhoSlider->setRange(1, 10);
+        pRhoSlider->setValue(1);
+        m_pHoughRhoLabel = new QLabel("1.0");
+        pSliderRhoLayout->addWidget(pRhoSlider, 9);
+        pSliderRhoLayout->addWidget(m_pHoughRhoLabel, 1);
+
+        QHBoxLayout * pHoughThetaLayout = new QHBoxLayout();
+        QSlider * pThetaSlider = new QSlider(Qt::Horizontal , m_pHoughWidget);
+        pThetaSlider->setRange(1, 180);
+        pThetaSlider->setValue(1);
+        m_pHoughThetaLabel = new QLabel("1");
+        pHoughThetaLayout->addWidget(pThetaSlider, 9);
+        pHoughThetaLayout->addWidget(m_pHoughThetaLabel, 1);
+
+        QHBoxLayout * pThresholdLayout = new QHBoxLayout();
+        QSlider * pThresholdSlider = new QSlider(Qt::Horizontal , m_pHoughWidget);
+        pThresholdSlider->setRange(1, 255);
+        pThresholdSlider->setValue(125);
+        m_pHoughThresholdLabel = new QLabel("125");
+        pThresholdLayout->addWidget(pThresholdSlider, 9);
+        pThresholdLayout->addWidget(m_pHoughThresholdLabel, 1);
+
+
+        pSliderLayout->addLayout(pSliderRhoLayout);
+        pSliderLayout->addLayout(pHoughThetaLayout);
+        pSliderLayout->addLayout(pThresholdLayout);
+
+        connect(pRhoSlider, &QSlider::valueChanged, this, &ImageIdentifyWindow::OnHoughRhoChanged);
+        connect(pThetaSlider, &QSlider::valueChanged, this, &ImageIdentifyWindow::OnHoughThetaChanged);
+        connect(pThresholdSlider, &QSlider::valueChanged, this, &ImageIdentifyWindow::OnHoughThresholdChanged);
+
+        QHBoxLayout * pLayoutImage = new QHBoxLayout();
+
+        QLabel* pHoughLabelRaw = new QLabel(m_pHoughWidget);
+        m_pHoughLabelAfter = new QLabel(m_pHoughWidget);
+
+        pLayoutImage->addWidget(pHoughLabelRaw);
+        pLayoutImage->addWidget(m_pHoughLabelAfter);
+
+        QVBoxLayout * pMainLayout = new QVBoxLayout(m_pHoughWidget);
+
+        pMainLayout->addLayout(pHoughTypeLayout, 1);
+        pMainLayout->addLayout(pSliderLayout, 1);
+        pMainLayout->addLayout(pLayoutImage, 8);
+
+        m_pHoughWidget->setLayout(pMainLayout);
+
+        LabelDisplayMat(pHoughLabelRaw, m_matRaw);
+        LabelDisplayMat(m_pResizeLabelAfter, m_matRaw);
+
+        emit pThresholdSlider->valueChanged(125);
+
+    }
+    pStackedWidget->addWidget(m_pHoughWidget);
+}
+
 
 void ImageIdentifyWindow::OnThresholdTypesChanged()
 {
@@ -554,4 +643,93 @@ void ImageIdentifyWindow::OnResizeParamChanged()
         cv::pyrDown(m_matRaw, dst, cv::Size());
 
     LabelDisplayMat(m_pResizeLabelAfter, dst);
+}
+
+void ImageIdentifyWindow::OnHoughTypeChanged()
+{
+    if(((QRadioButton*)sender())->text() == "SHT")
+        m_nHoughType = 0;
+    else if(((QRadioButton*)sender())->text() == "MSHT")
+        m_nHoughType = 1;
+    else if(((QRadioButton*)sender())->text() == "PPHT")
+        m_nHoughType = 2;
+
+    OnHoughParamChanged();
+}
+
+void ImageIdentifyWindow::OnHoughRhoChanged(int value)
+{
+    m_dHoughRho = value;
+    m_pHoughRhoLabel->setText(QString::fromLocal8Bit("像素精度：%1").arg(value));
+
+    OnHoughParamChanged();
+}
+
+
+void ImageIdentifyWindow::OnHoughThetaChanged(int value)
+{
+    #define CV_PI   3.1415926535897932384626433832795
+    m_dHoughTheta = float(value) / 180.0 * CV_PI;
+    m_pHoughThetaLabel->setText(QString::fromLocal8Bit("角度精度：%1").arg(m_dHoughTheta));
+
+    OnHoughParamChanged();
+}
+
+void ImageIdentifyWindow::OnHoughThresholdChanged(int value)
+{
+    m_dHoughThreshold = value;
+    m_pHoughThresholdLabel->setText(QString::fromLocal8Bit("阈值：%1").arg(m_dHoughThreshold));
+
+    OnHoughParamChanged();
+}
+
+void ImageIdentifyWindow::OnHoughParamChanged()
+{
+    if( m_matRaw.data == NULL)
+        return;
+
+    cv::Mat mid = m_matRaw.clone(), dst;
+
+    cv::Canny(m_matRaw, dst, 50, 200, 3);//进行一此canny边缘检测
+    //cv::cvtColor(mid, dst, cv::COLOR_RGB2GRAY);
+
+    std::vector<cv::Vec2f> lines;//定义一个矢量结构lines用于存放得到的线段矢量集合
+
+    if(m_nHoughType == 0)
+        cv::HoughLines(dst, lines, m_dHoughRho, m_dHoughTheta / 180, m_dHoughThreshold, 0, 0 );
+        //HoughLines(dst, lines, 1, CV_PI/180, 150, 0, 0 );
+    else if(m_nHoughType == 1)
+        cv::HoughLines(dst, lines, m_dHoughRho, m_dHoughTheta / 180, m_dHoughThreshold, 0, 0 );
+    else if(m_nHoughType == 2)
+    {
+        std::vector<cv::Vec4i> lines;//定义一个矢量结构lines用于存放得到的线段矢量集合
+        cv::HoughLinesP(dst, lines, m_dHoughRho, m_dHoughTheta / 180, m_dHoughThreshold, 50);
+
+        for( size_t i = 0; i < lines.size(); i++ )
+        {
+            cv::Vec4i l = lines[i];
+            line( mid, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(186,88,255), 1);
+        }
+
+        LabelDisplayMat(m_pHoughLabelAfter, mid);
+
+        return;
+    }
+
+
+    for( size_t i = 0; i < lines.size(); i++ )
+    {
+        float rho = lines[i][0], theta = lines[i][1];
+        cv::Point pt1, pt2;
+        double a = cos(theta), b = sin(theta);
+        double x0 = a*rho, y0 = b*rho;
+        pt1.x = cvRound(x0 + 1000*(-b));
+        pt1.y = cvRound(y0 + 1000*(a));
+        pt2.x = cvRound(x0 - 1000*(-b));
+        pt2.y = cvRound(y0 - 1000*(a));
+        cv::line( mid, pt1, pt2, cv::Scalar(0, 0, 255), 1);
+    }
+
+    LabelDisplayMat(m_pHoughLabelAfter, mid);
+
 }
